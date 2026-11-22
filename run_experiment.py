@@ -1,5 +1,5 @@
-"""Find discriminative 400-2500 nm regions for glucose / sucrose / raffinose /
-stachyose and compare PLS performance: full spectrum vs selected regions.
+"""Find discriminative 400-2500 nm regions for glucose / maltose / maltotriose /
+maltotetraose (glucose-only alpha-1,4 chains) and compare PLS performance: full spectrum vs selected regions.
 
     python run_experiment.py [--repeats 5] [--ncal 150] [--ntest 100]
 """
@@ -23,14 +23,24 @@ from sugar_nir.simulate import WL, pure_sugar_spectrum, simulate_dataset, water_
 
 OUT = Path("results")
 METHODS = ["full_400_2500", "nir_1000_2500", "theory_NAS", "VIP", "iPLS", "hybrid"]
-KOR = {"glucose": "포도당(단당류)", "sucrose": "수크로스(이당류)",
-       "raffinose": "라피노스(삼당류)", "stachyose": "스타키오스(사당류)",
-       "RFO_sum": "삼+사당류 합(RFO)"}
-TARGETS = SUGAR_NAMES + ["RFO_sum"]
+KOR = {"glucose": "포도당(DP1)", "maltose": "말토오스(DP2)",
+       "maltotriose": "말토트리오스(DP3)", "maltotetraose": "말토테트라오스(DP4)",
+       "DP3_4_sum": "DP3+DP4 합", "total": "총 당량 (g/100 mL)",
+       "reducing_ends": "환원 말단 (mmol/100 mL)", "mean_DP": "평균 중합도 DP"}
+TARGETS = SUGAR_NAMES + ["DP3_4_sum", "total", "reducing_ends", "mean_DP"]
+MW = np.array([SUGARS[n].mw for n in SUGAR_NAMES])
 
 
 def target(Y, s):
-    return Y[:, 2] + Y[:, 3] if s == "RFO_sum" else Y[:, SUGAR_NAMES.index(s)]
+    if s == "DP3_4_sum":
+        return Y[:, 2] + Y[:, 3]
+    if s == "total":
+        return Y.sum(1)
+    if s == "reducing_ends":
+        return (Y / MW * 1000).sum(1)
+    if s == "mean_DP":   # number-average DP from Mn = 162.14 DP + 18.02
+        return (Y.sum(1) / (Y / MW).sum(1) - 18.02) / 162.14
+    return Y[:, SUGAR_NAMES.index(s)]
 
 
 def evaluate(Xc, yc, Xt, yt, mask):
@@ -113,7 +123,7 @@ def main():
 
 
 def plot_spectra(sel, wins0, stable):
-    fig, ax = plt.subplots(3, 1, figsize=(11, 10), sharex=True)
+    fig, ax = plt.subplots(3, 1, figsize=(11, 12), sharex=True, gridspec_kw={"height_ratios": [1, 1, 1.4]})
     for s in SUGAR_NAMES:
         ax[0].plot(WL, pure_sugar_spectrum(s) * 10, label=f"{s} (10 g/100 mL)")
     ax0b = ax[0].twinx()
@@ -122,7 +132,7 @@ def plot_spectra(sel, wins0, stable):
     ax[0].set_ylabel("sugar A"); ax[0].legend(fontsize=8, loc="upper left")
     ax[0].set_title("Simulated pure-component spectra (Morse/group model)")
     for s in TARGETS:
-        ax[1].semilogy(WL, sel[s] + 1e-3, label=s, ls="--" if s == "RFO_sum" else "-")
+        ax[1].semilogy(WL, sel[s] + 1e-3, label=s, ls="--" if s == "DP3_4_sum" else "-")
     ax[1].set_ylabel("NAS / noise (per g/100 mL)"); ax[1].legend(fontsize=8)
     ax[1].set_title("Theory selectivity (net analyte signal vs noise)")
     for k, s in enumerate(TARGETS):
@@ -138,23 +148,23 @@ def plot_spectra(sel, wins0, stable):
 
 
 def plot_rmsep(summ):
-    fig, ax = plt.subplots(figsize=(11, 4.5))
+    fig, ax = plt.subplots(figsize=(13, 4.5))
     w = 0.13
     nt = len(TARGETS)
     for i, m in enumerate(METHODS):
-        v = [summ[m][s]["rmsep"] for s in TARGETS]
-        e = [summ[m][s]["rmsep_sd"] for s in TARGETS]
+        v = [1 - summ[m][s]["r2"] for s in TARGETS]
+        e = None
         ax.bar(np.arange(nt) + (i - 2.5) * w, v, w, yerr=e, label=m, capsize=2)
-    ax.set_xticks(range(nt)); ax.set_xticklabels(TARGETS)
-    ax.set_ylabel("RMSEP (g/100 mL)"); ax.legend(fontsize=8, ncol=3)
-    ax.set_title("PLS test error: full spectrum vs selected regions")
+    ax.set_xticks(range(nt)); ax.set_xticklabels(TARGETS, fontsize=8)
+    ax.set_ylabel("1 - R² (test, lower is better)"); ax.legend(fontsize=8, ncol=3)
+    ax.set_title("PLS test error: full spectrum vs selected regions"); ax.set_yscale("log")
     ax.grid(axis="y", alpha=.3)
     fig.tight_layout(); fig.savefig(OUT / "rmsep_comparison.png", dpi=130)
     plt.close(fig)
 
 
 def plot_freq(freq, R):
-    fig, ax = plt.subplots(len(TARGETS), 1, figsize=(11, 9), sharex=True)
+    fig, ax = plt.subplots(len(TARGETS), 1, figsize=(11, 14), sharex=True)
     for k, s in enumerate(TARGETS):
         for m in ("theory_NAS", "VIP", "iPLS", "hybrid"):
             ax[k].plot(WL, freq[m][s] / R, label=m)
@@ -182,7 +192,7 @@ def write_report(summ, wins0, stable, t_sim, args):
          f"- 반복 {args.repeats}회, 검량 {args.ncal}개 / 테스트 {args.ntest}개 (독립 세트)",
          f"- 시뮬레이션 비용: 스펙트럼 1개당 {t_sim * 1e3:.1f} ms (Morse 슈뢰딩거 수치해 + 밴드 합성)",
          "- 농도: 4종 각 0–10 g/100 mL 독립 랜덤, 수용액 (물 매트릭스, 온도 ±1.5 °C, 색소 간섭, 산란/광로 변동, 이분산 노이즈)\n",
-         "## 1. 성능 비교 (RMSEP 평균 ± SD, g/100 mL / R² / 파장 수)\n",
+         "## 1. 성능 비교 (RMSEP 평균 ± SD / R² / 파장 수; 단위는 타깃별)\n",
          "| 방법 | " + " | ".join(KOR[s] for s in TARGETS) + " |",
          "|---|" + "---|" * len(TARGETS)]
     for m in METHODS:

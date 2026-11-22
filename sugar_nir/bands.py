@@ -1,4 +1,4 @@
-"""Group-contribution band model for mono/di/tri/tetrasaccharides.
+"""Group-contribution band model for glucose and malto-oligosaccharides (DP1-DP4).
 
 Each sugar is described by its X-H oscillators (counted per molecule).
 For every oscillator type the Morse solver gives overtone positions and
@@ -33,9 +33,6 @@ GROUPS = {
     "OH_prim": Group("OH_prim", 3575, 90, 1.00, 120,
                      [(1360, 1.6, 110, "OH str + COH bend"),
                       (1040, 0.6, 90, "OH str + CO str")]),
-    "OH_ax":   Group("OH_ax",   3600, 88, 1.00, 110,
-                     [(1395, 1.6, 105, "OH(ax) str + COH bend"),
-                      (1060, 0.6, 90, "OH(ax) str + CO str")]),
     "OH_anom": Group("OH_anom", 3545, 91, 1.00, 125,
                      [(1405, 1.6, 110, "anomeric OH str + bend"),
                       (1075, 0.7, 90, "anomeric OH + C1-O str")]),
@@ -43,15 +40,15 @@ GROUPS = {
                      [(1440, 1.3, 45, "CH str + CH bend"),
                       (1110, 0.5, 50, "CH str + CO str"),
                       (4207, 0.12, 70, "2CH str + CH bend")]),
-    "CH_furan": Group("CH_furan", 3020, 59, 0.55, 55,
-                      [(1420, 1.3, 45, "furanose CH str + bend"),
-                       (1080, 0.5, 50, "furanose CH + CO str")]),
     "CH2":     Group("CH2",     2995, 60, 0.55, 50,
                      [(1465, 1.3, 40, "CH2 str + scissor"),
                       (1340, 0.7, 45, "CH2 str + wag")]),
     "CH_anom": Group("CH_anom", 3045, 60, 0.55, 55,
                      [(1400, 1.2, 45, "anomeric CH str + bend"),
                       (1090, 0.6, 50, "anomeric CH + C1-O str")]),
+    "CH_link": Group("CH_link", 3035, 60, 0.55, 55,
+                     [(1395, 1.2, 45, "C4-H(linked) str + bend"),
+                      (1140, 0.8, 55, "C4-H + C-O-C str")]),
     "CH_glyc": Group("CH_glyc", 3055, 61, 0.55, 55,
                      [(1385, 1.2, 45, "glycosidic CH str + bend"),
                       (1150, 0.9, 55, "CH + C-O-C asym str")]),
@@ -67,19 +64,25 @@ class Sugar:
     oh_shift: float = 0.0   # extra intramolecular H-bond shift of OH (cm^-1)
 
 
+# Glucose-only alpha-(1->4) chain (malto-oligosaccharides), all reducing sugars.
+# Per n glucose units: 1 reducing end (anomeric OH + anomeric CH),
+# n-1 glycosidic C1-H, n-1 linked C4-H (next to the glycosidic O).
 SUGARS = {
-    "glucose":   Sugar("glucose", "monosaccharide", 180.16,
-                       {"OH_anom": 1, "OH_sec": 3, "OH_prim": 1,
-                        "CH_anom": 1, "CH_ring": 4, "CH2": 2}, 0.0),
-    "sucrose":   Sugar("sucrose", "disaccharide", 342.30,
-                       {"OH_sec": 5, "OH_prim": 3,
-                        "CH_glyc": 1, "CH_ring": 4, "CH_furan": 3, "CH2": 6}, -8.0),
-    "raffinose": Sugar("raffinose", "trisaccharide", 504.42,
-                       {"OH_sec": 7, "OH_prim": 3, "OH_ax": 1,
-                        "CH_glyc": 2, "CH_ring": 8, "CH_furan": 3, "CH2": 8}, -12.0),
-    "stachyose": Sugar("stachyose", "tetrasaccharide", 666.58,
-                       {"OH_sec": 9, "OH_prim": 3, "OH_ax": 2,
-                        "CH_glyc": 3, "CH_ring": 12, "CH_furan": 3, "CH2": 10}, -15.0),
+    "glucose":       Sugar("glucose", "DP1 monosaccharide", 180.16,
+                           {"OH_anom": 1, "OH_sec": 3, "OH_prim": 1,
+                            "CH_anom": 1, "CH_ring": 4, "CH2": 2}, 0.0),
+    "maltose":       Sugar("maltose", "DP2 disaccharide", 342.30,
+                           {"OH_anom": 1, "OH_sec": 5, "OH_prim": 2,
+                            "CH_anom": 1, "CH_glyc": 1, "CH_link": 1,
+                            "CH_ring": 7, "CH2": 4}, -6.0),
+    "maltotriose":   Sugar("maltotriose", "DP3 trisaccharide", 504.44,
+                           {"OH_anom": 1, "OH_sec": 7, "OH_prim": 3,
+                            "CH_anom": 1, "CH_glyc": 2, "CH_link": 2,
+                            "CH_ring": 10, "CH2": 6}, -9.0),
+    "maltotetraose": Sugar("maltotetraose", "DP4 tetrasaccharide", 666.58,
+                           {"OH_anom": 1, "OH_sec": 9, "OH_prim": 4,
+                            "CH_anom": 1, "CH_glyc": 3, "CH_link": 3,
+                            "CH_ring": 13, "CH2": 8}, -11.0),
 }
 SUGAR_NAMES = list(SUGARS)
 

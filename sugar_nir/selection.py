@@ -65,10 +65,22 @@ def theory_selectivity(rng, wl=WL, model_error=True):
         Pz = Z @ np.linalg.pinv(Z)
         nas = D[name] - Pz @ D[name]
         out[name] = np.abs(nas) / noise
-    # raffinose + stachyose together (raffinose-family oligosaccharides, RFO)
-    Z = np.array([D["glucose"], D["sucrose"]] + Dint).T
-    rfo = 0.5 * (D["raffinose"] + D["stachyose"])
-    out["RFO_sum"] = np.abs(rfo - Z @ np.linalg.pinv(Z) @ rfo) / noise
+    # maltotriose + maltotetraose together (DP3+DP4)
+    Z = np.array([D["glucose"], D["maltose"]] + Dint).T
+    oligo = 0.5 * (D["maltotriose"] + D["maltotetraose"])
+    out["DP3_4_sum"] = np.abs(oligo - Z @ np.linalg.pinv(Z) @ oligo) / noise
+    # aggregate targets: total sugar (mean per-gram spectrum) and reducing ends
+    # (direction that varies with 1/MW, i.e. moles of reducing end per gram)
+    from .bands import SUGARS
+    Dm = np.array([D[n] for n in SUGAR_NAMES])
+    Zi = np.array(Dint).T
+    tot = Dm.mean(0)
+    out["total"] = np.abs(tot - Zi @ np.linalg.pinv(Zi) @ tot) / noise
+    inv = np.array([1 / SUGARS[n].mw for n in SUGAR_NAMES])
+    red = ((inv - inv.mean()) / inv.std()) @ Dm
+    Z = np.column_stack([Zi, tot])
+    out["reducing_ends"] = np.abs(red - Z @ np.linalg.pinv(Z) @ red) / noise
+    out["mean_DP"] = out["reducing_ends"]
     return out
 
 
