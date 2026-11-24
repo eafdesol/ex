@@ -70,3 +70,31 @@ def simulate_dataset(n, rng, cmax=10.0, wl=WL):
         A += rng.normal(0, 1, wl.size) * noise_sigma(A)
         X[i] = A
     return X, Y
+
+
+# Approximate absorption coefficient of liquid water at ~25 C (Napierian, cm^-1),
+# rounded from Hale & Querry (1973) / Kou et al. (1993) / Segelstein (1981).
+WATER_ALPHA_NM = np.array([
+    [600, 0.0024], [650, 0.0034], [700, 0.006], [750, 0.026], [800, 0.020],
+    [850, 0.043], [900, 0.068], [950, 0.39], [970, 0.45], [1000, 0.36],
+    [1050, 0.15], [1100, 0.18], [1150, 0.90], [1200, 1.04], [1250, 1.0],
+    [1300, 1.3], [1350, 3.0], [1400, 12.6], [1450, 30.0], [1500, 21.0],
+    [1550, 9.5], [1600, 6.7], [1650, 5.4], [1700, 5.5], [1750, 6.5],
+    [1800, 8.1], [1850, 13.0], [1900, 74.0], [1940, 120.0], [2000, 69.0],
+    [2050, 42.0], [2100, 30.0], [2150, 21.0], [2200, 16.5], [2250, 18.0],
+    [2300, 23.0], [2350, 33.0], [2400, 47.0], [2450, 65.0], [2500, 87.0],
+])
+
+
+def water_real(wl=WL, T=25.0, path_mm=1.0, shift_per_C=2.0, int_per_C=-0.004):
+    """Decadic absorbance of a water layer from the literature curve.
+
+    Temperature: whole curve shifted to higher wavenumber by `shift_per_C`
+    cm^-1 per C and band intensity changed by `int_per_C` per C (approx.).
+    """
+    k = 1e7 / np.asarray(wl, float) - shift_per_C * (T - 25.0)
+    kk = 1e7 / WATER_ALPHA_NM[::-1, 0]
+    la = np.log(WATER_ALPHA_NM[::-1, 1])
+    from scipy.interpolate import PchipInterpolator
+    alpha = np.exp(PchipInterpolator(kk, la, extrapolate=True)(k))
+    return alpha * (path_mm / 10.0) / np.log(10) * (1 + int_per_C * (T - 25.0))

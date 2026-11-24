@@ -26,7 +26,15 @@ from __future__ import annotations
 import numpy as np
 
 from .bands import Group, group_bands, render
-from .simulate import noise_sigma, pigment_spectrum, water_spectrum
+from .simulate import noise_sigma, pigment_spectrum, water_real, water_spectrum
+
+WATER = {"model": "real", "path_mm": 1.0}   # "real" literature curve or "gauss" (old)
+
+
+def water(wl, T=25.0):
+    if WATER["model"] == "real":
+        return water_real(wl, T, WATER["path_mm"])
+    return water_spectrum(wl, T)
 
 K = np.arange(4000.0, 16000.0 + 1e-9, 8.0)     # cm^-1, instrument range
 WLK = 1e7 / K                                    # nm (descending)
@@ -155,7 +163,7 @@ def simulate_ketose(n, rng, k=K, total=(5.0, 40.0), T_mean=25.0, T_sd=2.0):
     Ts = rng.normal(T_mean, T_sd, n)
     for i in range(n):
         T = Ts[i]
-        A = water_spectrum(wl, T) * (1 - PSV * tot[i])
+        A = water(wl, T) * (1 - PSV * tot[i])
         for j, s in enumerate(SUGARS_K):
             A += Y[i, j] * sugar_spectrum(s, k, T)
         A += rng.uniform(0, 0.4) * pigment_spectrum(wl, rng.uniform(430, 520), rng.uniform(40, 80))
@@ -188,9 +196,9 @@ def theory_selectivity_k(rng, k=K, model_error=True, dominant_only=False):
     else:
         S = {s: sugar_spectrum(s, k, 25.0, perturb) for s in SUGARS_K}
         dS = {s: sugar_spectrum(s, k, 30.0, perturb) - S[s] for s in SUGARS_K}
-    w0 = water_spectrum(wl, 25.0)
+    w0 = water(wl, 25.0)
     x = k / 10000.0
-    interf = [w0, water_spectrum(wl, 26.0) - w0, pigment_spectrum(wl), pigment_spectrum(wl, 500, 70),
+    interf = [w0, water(wl, 26.0) - w0, pigment_spectrum(wl), pigment_spectrum(wl, 500, 70),
               np.ones_like(k), x, x ** 2] + [v for v in dS.values() if np.any(v)]
     typical = w0 + 10 * S["fructose"] + 10 * S["allulose"]
     P = lambda v: preprocess(np.atleast_2d(v))[0]

@@ -21,7 +21,7 @@ from sugar_nir.ketose import (K, SUGARS_K, TAUT_NAMES, band_table_k, populations
 from sugar_nir.pls import PLS1, choose_lv, cv_rmse, preprocess
 from sugar_nir.selection import (backward_ipls, forward_ipls, mask_to_windows,
                                  windows_to_mask)
-from sugar_nir.simulate import water_spectrum
+from sugar_nir.ketose import WATER, water
 
 OUT = Path("results_ketose")
 TARGETS = ["fructose", "allulose", "total"]
@@ -192,7 +192,7 @@ def plot_tautomers():
     d = preprocess((10 * (sugar_spectrum("allulose") - sugar_spectrum("fructose")))[None])[0]
     ax[2].plot(K, d, "C3", label="d/dk (allulose − fructose)")
     a2 = ax[2].twinx()
-    a2.plot(K, water_spectrum(1e7 / K), "k:", lw=1, label="water")
+    a2.plot(K, water(1e7 / K), "k:", lw=1, label="water (1 mm)")
     a2.set_ylabel("water A")
     ax[2].axhline(0, color="gray", lw=.5); ax[2].legend(fontsize=8, loc="upper right")
     ax[2].set_title("Difference spectrum (1st derivative) — where the two sugars differ")
@@ -253,6 +253,7 @@ def report(summ, stable, wins0, t_sim, args):
     L = ["# 과당 / 알룰로스 영역 선택 결과 (4000–16000 cm⁻¹, 호변이성질체 모델)\n",
          f"- 반복 {args.repeats}회, 검량 {args.ncal}개 / 테스트 {args.ntest}개 (독립)",
          f"- 시뮬레이션 비용: 스펙트럼당 {t_sim * 1e3:.0f} ms",
+         f"- 물 모델: {WATER['model']} (문헌 흡수 곡선), 광로 {WATER['path_mm']} mm",
          "- 시료: 총 당 5–40 g/100 mL, 알룰로스 비율 0–100 %, 온도 25±2 °C (호변이성질체 비율이 온도에 따라 변함)\n",
          "## 호변이성질체 비율 (25 °C, 문헌 NMR 근사)\n",
          "| | β-피라노스 | α-피라노스 | β-퓨라노스 | α-퓨라노스 | 케토 |", "|---|---|---|---|---|---|"]
@@ -275,7 +276,9 @@ def report(summ, stable, wins0, t_sim, args):
     for s in TARGETS:
         L.append(f"### {KOR[s]}")
         for a, b in stable[s]:
-            L.append(f"- **{a:.0f}–{b:.0f} cm⁻¹** ({nm(a, b)}): {assign(a, b, tab)}")
+            wa = water(1e7 / K[(K >= a) & (K <= b)])
+            L.append(f"- **{a:.0f}–{b:.0f} cm⁻¹** ({nm(a, b)}, 물 A {wa.min():.2f}–{wa.max():.2f}): "
+                     f"{assign(a, b, tab)}")
         um |= windows_to_mask(stable[s], K)
         L.append("")
     L += ["### 공통 합집합", fmt(mask_to_windows(um, K, 0, GAP)) +
