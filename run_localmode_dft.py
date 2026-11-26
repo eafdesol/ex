@@ -57,10 +57,12 @@ def geometry(name, geoms):
     return numbers, confs[0]
 
 
-def main():
+def main(only=None, out_name="ch_overtones_dft.csv"):
     geoms = json.load(open(OUT / "geometries.json"))
     rows = []
     for name, targets in TARGETS.items():
+        if only and name not in only:
+            continue
         numbers, pos = geometry(name, geoms)
         labels = label_atoms(Chem.AddHs(Chem.MolFromSmiles(smiles_of(name))))
         for h, d in labels.items():
@@ -77,10 +79,13 @@ def main():
                 print(f"{name:16s} {d['label']:6s} {meth}: nu1={nu[0]:7.1f} nu2={nu[1]:7.1f} "
                       f"we={we:6.0f} wexe={wexe:5.1f} ({time.time() - t0:.0f} s)", flush=True)
             rows.append(row)
-            with open(OUT / "ch_overtones_dft.csv", "w", newline="") as f:
+            with open(OUT / out_name, "w", newline="") as f:
                 wr = csv.DictWriter(f, fieldnames=list(rows[0]))
                 wr.writeheader(); wr.writerows(rows)
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+    # e.g. python run_localmode_dft.py 4-OMe-b-glucose  (writes ch_overtones_dft_<name>.csv)
+    names = sys.argv[1:]
+    main(names or None, f"ch_overtones_dft_{'_'.join(names)}.csv" if names else "ch_overtones_dft.csv")

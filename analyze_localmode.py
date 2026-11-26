@@ -26,11 +26,37 @@ POP = {"glucose": {"a-glucose": 0.36, "b-glucose": 0.64},
 FWHM = {2: 60.0, 3: 90.0}       # per-C-H band width in solution (cm^-1), assumed
 
 
+def dft_pairs():
+    rows = []
+    for f in sorted(OUT.glob("ch_overtones_dft*.csv")):
+        rows += list(csv.DictReader(open(f)))
+    return rows
+
+
+def calibration():
+    """Linear map xTB -> DFT for nu2 and nu3 from the paired scans."""
+    P = dft_pairs()
+    cal = {}
+    for v in (2, 3):
+        x = np.array([float(r[f"xtb_nu{v}"]) for r in P])
+        y = np.array([float(r[f"dft_nu{v}"]) for r in P])
+        b, a = np.polyfit(x, y, 1)
+        res = y - (a + b * x)
+        cal[v] = (a, b, float(np.sqrt(np.mean(res ** 2))), len(x))
+    return cal, P
+
+
 def load(method):
-    rows = list(csv.DictReader(open(OUT / f"ch_overtones_{method}.csv")))
+    rows = list(csv.DictReader(open(OUT / "ch_overtones_xtb.csv")))
     for r in rows:
         for k in ("we", "wexe", "nu1", "nu2", "nu3", "I1", "I2", "I3"):
             r[k] = float(r[k])
+    if method == "cal":
+        cal, _ = calibration()
+        for r in rows:
+            for v in (2, 3):
+                a, b, _, _ = cal[v]
+                r[f"nu{v}"] = a + b * r[f"nu{v}"]
     return rows
 
 
@@ -76,7 +102,8 @@ def main(method="xtb"):
     for r in rows:
         r["orient"] = ori.get((r["molecule"], r["label"]), "?")
     ref = np.mean([r["nu2"] for r in rows if "glucose" in r["molecule"]])
-    L = [f"# C-H local-mode 배음 계산 ({'GFN2-xTB' if method == 'xtb' else 'B3LYP/6-31G**'}, 물 용매 모델)\n",
+    title = {"xtb": "GFN2-xTB 원값", "cal": "GFN2-xTB → B3LYP/6-31G** 보정"}[method]
+    L = [f"# C-H local-mode 배음 계산 ({title}, 물 용매 모델)\n",
          f"포도당 전체 C-H 1차 배음 평균 (계산 원값): {ref:.0f} cm⁻¹ ({1e7 / ref:.0f} nm)\n",
          "Δ = 해당 C-H의 1차 배음 − 포도당 평균 (cm⁻¹). 절대값보다 Δ가 더 믿을 만함.\n",
          "## 1. C-H별 결과\n",
@@ -103,7 +130,7 @@ def main(method="xtb"):
         L.append(f"| (방향만) {o} | | | {np.mean(v):+.0f} ± {np.std(v):.0f} (n={len(v)}) |")
 
     # spectra
-    k = np.arange(5000.0, 6800.0, 1.0)
+    k = np.arange(5000.0, 6400.0, 1.0)
     k3 = np.arange(7500.0, 9500.0, 1.0)
     g2, m2 = spectrum(rows, "glucose", 2, k), spectrum(rows, "maltose", 2, k)
     g3, m3 = spectrum(rows, "glucose", 3, k3), spectrum(rows, "maltose", 3, k3)
@@ -131,6 +158,19 @@ def main(method="xtb"):
           ", ".join(f"{r['molecule']} {r['label']} {r['nu2']:.0f} (Δ {r['nu2'] - ref:+.0f})"
                     for r in rows if r["label"] in spec_lab),
           f"- 최대 상대 차이 |Δ스펙트럼|/최대흡광: {np.abs(d2).max():.3f}"]
+    if method == "cal":
+        cal, P = calibration()
+        a, b, rmse, n = cal[2]
+        L += ["\n## 4. xTB → DFT 보정 (1차 배음)\n",
+              f"DFT = {a:.0f} + {b:.3f} × xTB  (쌍 {n}개, 잔차 RMSE {rmse:.0f} cm⁻¹)\n",
+              "| 분자 | C-H | 유형 | xTB | DFT | 보정 xTB |", "|---|---|---|---|---|---|"]
+        for r in P:
+            x, y = float(r["xtb_nu2"]), float(r["dft_nu2"])
+            L.append(f"| {r['molecule']} | {r['label']} | {r['cls']} | {x:.0f} | {y:.0f} | {a + b * x:.0f} |")
+        L += ["\n## 5. 파장으로 환산한 결과 (보정값)\n"]
+        for lab, ws in (("말토오스가 더 큰 구간", wins_pos), ("포도당이 더 큰 구간", wins_neg)):
+            L.append(f"- {lab}: " + ", ".join(f"{a_:.0f}–{b_:.0f} cm⁻¹ = {1e7 / b_:.0f}–{1e7 / a_:.0f} nm"
+                                              for a_, b_ in ws))
     (OUT / f"report_{method}.md").write_text("\n".join(L), encoding="utf-8")
 
     fig, ax = plt.subplots(3, 1, figsize=(11, 11))
@@ -155,7 +195,8 @@ def main(method="xtb"):
     ax[1].set_title("Difference spectrum: orange = maltose-rich, blue = glucose-rich")
     ax[2].plot(k3, g3, label="glucose"); ax[2].plot(k3, m3, label="maltose")
     ax[2].set_title("C-H 2nd overtone (per gram)"); ax[2].legend(fontsize=8)
-    ax[2].set_xlim(k3[-1], k3[0]); ax[2].set_xlabel("wavenumber (cm⁻¹, raw calculation)")
+    ax[2].set_xlim(k3[-1], k3[0])
+    ax[2].set_xlabel("wavenumber (cm⁻¹, " + ("xTB raw" if method == "xtb" else "calibrated to DFT") + ")")
     for a in ax:
         a.grid(alpha=.3)
     fig.tight_layout(); fig.savefig(OUT / f"overtone_{method}.png", dpi=130); plt.close(fig)
