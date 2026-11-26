@@ -1,0 +1,331 @@
+<title>포도당·엿당 C-H 배음</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one reading column; chart and 3D viewer side by side on wide screens, stacked on phones. */
+:root {
+  --bg: #f4f6f8; --panel: #ffffff; --fg: #18212b; --muted: #5b6878; --line: #d9dfe6;
+  --glc: #2b6c9e; --mal: #b8701a; --accent: #3d5a80; --hi: #c23b5a; --band: rgba(61,90,128,.10);
+  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11151a; --panel: #192028; --fg: #e2e7ed; --muted: #95a1ae; --line: #2c3743;
+  --glc: #6aa8da; --mal: #e7a24c; --accent: #8fb0d8; --hi: #f07a94; --band: rgba(143,176,216,.12); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11151a; --panel: #192028; --fg: #e2e7ed; --muted: #95a1ae; --line: #2c3743;
+  --glc: #6aa8da; --mal: #e7a24c; --accent: #8fb0d8; --hi: #f07a94; --band: rgba(143,176,216,.12); color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 28px; }
+h1 { font-size: 1.65rem; font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: -.01em; }
+h2 { font-size: 1.12rem; font-weight: 600; margin: 0 0 4px; text-wrap: balance; }
+p { margin: 0; max-width: 68ch; }
+.lead { color: var(--muted); }
+.eyebrow { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 12px; min-width: 0; }
+.mono, td.num, .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.stack { display: grid; gap: 16px; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 720px) { .split { grid-template-columns: minmax(0, 1fr); } }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 820px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+.controls { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; font-size: .88rem; color: var(--muted); }
+.controls label { display: inline-flex; gap: 6px; align-items: center; }
+input[type=range] { width: 140px; accent-color: var(--accent); }
+input[type=checkbox] { accent-color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: inherit; font-size: .85rem; border: 1px solid var(--line); background: transparent; color: var(--fg); border-radius: 999px; padding: 3px 12px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--panel); }
+.chip:focus-visible, tr:focus-visible, button:focus-visible { outline: 2px solid var(--hi); outline-offset: 2px; }
+svg text { fill: var(--muted); font-family: var(--font-mono); font-size: 11px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .82rem; color: var(--muted); }
+.sw { display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+.sw.box { height: 10px; }
+.tablebox { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-size: .85rem; }
+th, td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-weight: 500; color: var(--muted); background: var(--panel); position: sticky; top: 0; font-size: .78rem; }
+td.num, th.num { text-align: right; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--band); }
+tbody tr[aria-selected="true"] { background: color-mix(in srgb, var(--hi) 14%, transparent); }
+.pill { display: inline-block; font-size: .75rem; padding: 0 8px; border-radius: 999px; border: 1px solid var(--line); }
+.lp2 { color: var(--hi); border-color: var(--hi); }
+.lp0 { color: var(--accent); border-color: var(--accent); }
+#viewer { position: relative; width: 100%; aspect-ratio: 4 / 3; max-width: 100%; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
+#viewer .msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: .85rem; padding: 16px; text-align: center; }
+.sel { font-size: .9rem; display: grid; gap: 4px; }
+.sel b { font-weight: 600; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: .85rem; }
+.kv span:nth-child(odd) { color: var(--muted); }
+ol.steps { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 72ch; }
+.note { font-size: .84rem; color: var(--muted); }
+code { font-family: var(--font-mono); font-size: .85em; background: var(--band); padding: 1px 5px; border-radius: 4px; }
+pre { font-family: var(--font-mono); font-size: .82rem; background: var(--band); padding: 10px 12px; border-radius: 8px; overflow-x: auto; margin: 0; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header style="display:grid;gap:8px">
+    <div class="eyebrow">Local-mode 계산 · GFN2-xTB → B3LYP 보정 · 물 용매 모델</div>
+    <h1>포도당·엿당 C-H 1차 배음</h1>
+    <p class="lead">포도당(α/β)과 엿당(α/β)의 C-H 42개를 하나씩 계산한 결과입니다. 표에서 C-H를 누르면 그래프와 3D 구조에서 위치가 강조됩니다. nm 값은 계산 원값을 DFT로 보정한 것이고, 실측보다 10–20 nm 장파장 쪽으로 밀려 있을 수 있습니다.</p>
+  </header>
+
+  <section class="stack">
+    <div class="panel">
+      <div>
+        <h2>그램당 스펙트럼</h2>
+        <p class="note">아노머 비율 반영 (포도당 α36 / β64, 엿당 α42 / β58). 아래 눈금은 선택한 분자의 C-H 하나하나의 위치입니다.</p>
+      </div>
+      <div class="controls">
+        <label for="fwhm">C-H당 밴드 폭 <input type="range" id="fwhm" min="30" max="160" step="10" value="60"> <span class="mono" id="fwhmv">60</span> cm⁻¹</label>
+        <label for="shift"><input type="checkbox" id="shift"> 실측 위치 가정 (−20 nm)</label>
+        <label for="range"><input type="checkbox" id="range" checked> 사용 영역 1680–1740 nm</label>
+      </div>
+      <div style="overflow-x:auto"><svg id="chart" viewBox="0 0 760 360" role="img" aria-label="포도당과 엿당의 C-H 1차 배음 스펙트럼" style="width:100%;min-width:560px;display:block"></svg></div>
+      <div class="legend">
+        <span><i class="sw" style="background:var(--glc)"></i>포도당</span>
+        <span><i class="sw" style="background:var(--mal)"></i>엿당</span>
+        <span><i class="sw box" style="background:color-mix(in srgb,var(--mal) 25%,transparent)"></i>엿당이 큰 구간</span>
+        <span><i class="sw box" style="background:color-mix(in srgb,var(--glc) 25%,transparent)"></i>포도당이 큰 구간</span>
+        <span><i class="sw" style="background:var(--hi)"></i>선택한 C-H</span>
+      </div>
+      <p class="note" id="winText"></p>
+    </div>
+
+    <div class="panel">
+      <div>
+        <h2>선택한 C-H</h2>
+        <p class="note">3D 구조는 가장 안정한 형태입니다. 분홍색 = 선택한 C-H의 H, 회색 = 그 C. 끌어서 돌리고, 스크롤로 확대합니다.</p>
+      </div>
+      <div class="split">
+        <div id="viewer"><div class="msg" id="vmsg">3D 뷰어를 불러오는 중입니다.</div></div>
+        <div class="sel" id="selInfo"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div>
+      <h2>C-H 42개</h2>
+      <p class="note">“정반대편 전자쌍”은 그 C-H의 반대 방향(180°)에 놓인 산소 비공유 전자쌍 수입니다 (형태 가중 평균). 많을수록 C-H가 길고 약해져 장파장 쪽에 흡수합니다.</p>
+    </div>
+    <div class="chips" id="filters" role="group" aria-label="분자 선택"></div>
+    <div class="tablebox">
+      <table>
+        <thead><tr>
+          <th>분자</th><th>C-H</th><th>유형</th><th>방향</th><th class="num">정반대편 전자쌍</th>
+          <th class="num">C-H 길이 (Å)</th><th class="num">xTB 원값 (cm⁻¹)</th><th class="num">보정 (cm⁻¹)</th>
+          <th class="num">보정 (nm)</th><th class="num">DFT (cm⁻¹)</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="panel">
+      <div>
+        <h2>위치를 정하는 규칙</h2>
+        <p class="note">포도당·엿당 C-H 42개에서 확인한 경향입니다.</p>
+      </div>
+      <div class="tablebox">
+        <table>
+          <thead><tr><th>정반대편 전자쌍</th><th class="num">C-H 길이</th><th>1차 배음 (보정)</th><th>예</th></tr></thead>
+          <tbody id="rules"></tbody>
+        </table>
+      </div>
+      <p class="note">엿당에서 새로 생기는 글리코시드 C-H 두 개(비환원 C1'-H, 환원 C4-H)는 글리코시드 결합이 산소 방향을 고정해서 전자쌍이 비켜나 있습니다. 그래서 일반 고리 C-H보다 단파장 쪽에 흡수합니다.</p>
+    </div>
+    <div class="panel">
+      <div>
+        <h2>xTB → DFT 보정</h2>
+        <p class="note" id="calText"></p>
+      </div>
+      <svg id="calChart" viewBox="0 0 360 260" role="img" aria-label="xTB와 DFT 계산값 비교" style="width:100%;display:block"></svg>
+      <p class="note">DFT는 B3LYP/6-31G**, ddCOSMO(물). 엿당은 DFT로 직접 돌리기에 커서, 글리코시드 C-H는 모델 분자(메틸 α-글루코사이드 C1-H, 4-O-메틸 β-포도당 C4-H)로 확인했습니다.</p>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>계산 순서와 코드</h2>
+    <ol class="steps">
+      <li>RDKit로 형태를 만들고, 두 고리가 모두 ⁴C₁ 의자형인 것만 GFN2-xTB(ALPB 물)로 최적화합니다. 2 kcal/mol 안의 형태를 Boltzmann 가중합니다.</li>
+      <li>C-H마다 H를 결합 방향으로 −0.30~+0.70 Å 움직이며 에너지와 쌍극자를 계산합니다.</li>
+      <li>그 퍼텐셜로 1D 슈뢰딩거 방정식을 풀어 1차·2차 배음 위치와 세기를 구합니다 (Morse 모양 가정 없음).</li>
+      <li>9개 C-H를 DFT로 다시 계산해 xTB→DFT 보정식을 만들고 모든 C-H에 적용합니다.</li>
+      <li>아노머 비율과 분자량으로 그램당 스펙트럼을 만들어 포도당과 엿당을 비교합니다.</li>
+    </ol>
+<pre>python run_localmode.py          # 1–3단계, xTB (약 10분)
+python run_localmode_dft.py      # 4단계, DFT 검증 (약 2시간)
+python analyze_localmode.py cal  # 5단계, 보정·분석
+python make_localmode_data.py    # 이 페이지 다시 만들기</pre>
+    <p class="note">핵심 계산은 <code>sugar_nir/localmode.py</code>에 있습니다. 이 페이지의 수치는 <code>results_localmode/viewer_data.json</code>에서 옵니다.</p>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/3dmol@2.4.0/build/3Dmol-min.js"></script>
+<script>
+const D = /*DATA*/null;
+const NAMES = {"a-glucose":"α-포도당","b-glucose":"β-포도당","a-maltose":"α-엿당","b-maltose":"β-엿당"};
+const ORIENT = {ax:"축",eq:"적도",CH2:"CH2"};
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+let filter = "all", selected = null;
+
+/* ---------- spectrum ---------- */
+const K = []; for (let k = 5400; k <= 6000; k += 1) K.push(k);
+function spectrum(sugar, fwhm) {
+  const s = fwhm / 2.3548, A = new Float64Array(K.length);
+  for (const [mol, p] of Object.entries(D.pop[sugar]))
+    for (const r of D.ch) if (r.mol === mol)
+      for (let i = 0; i < K.length; i++) A[i] += p * r.I2 * Math.exp(-0.5 * ((K[i] - r.cal2) / s) ** 2);
+  return Array.from(A, v => v / D.mw[sugar]);
+}
+function windows(d, sign) {
+  const m = Math.max(...d.map(Math.abs)), out = []; let s = null;
+  d.forEach((v, i) => { const on = sign * v > 0.5 * m;
+    if (on && s === null) s = i;
+    if ((!on || i === d.length - 1) && s !== null) { const e = on ? i : i - 1; if (K[e] - K[s] >= 10) out.push([K[s], K[e]]); s = null; } });
+  return out;
+}
+function drawChart() {
+  const fwhm = +document.getElementById("fwhm").value;
+  const shift = document.getElementById("shift").checked ? -20 : 0;
+  const showRange = document.getElementById("range").checked;
+  document.getElementById("fwhmv").textContent = fwhm;
+  const g = spectrum("glucose", fwhm), m = spectrum("maltose", fwhm);
+  const mx = Math.max(...g, ...m), d = m.map((v, i) => (v - g[i]) / mx);
+  const W = 760, H = 360, L = 48, R = 16, T = 14, B = 60, lo = 1660, hi = 1820;
+  const x = nm => L + (nm - lo) / (hi - lo) * (W - L - R);
+  const y = v => T + (1 - v / mx) * (H - T - B - 34);
+  const nmOf = k => 1e7 / k + shift;
+  const line = (arr, col) => `<polyline fill="none" stroke="${col}" stroke-width="2" points="${
+    arr.map((v, i) => [nmOf(K[i]), v]).filter(([n]) => n >= lo && n <= hi).map(([n, v]) => `${x(n).toFixed(1)},${y(v).toFixed(1)}`).join(" ")}"/>`;
+  let s = "";
+  const base = H - B - 34;
+  // shaded windows
+  const wm = windows(d, 1), wg = windows(d, -1);
+  const shade = (w, col) => w.map(([a, b]) => { const n1 = nmOf(b), n2 = nmOf(a);
+    return `<rect x="${x(n1).toFixed(1)}" y="${T}" width="${(x(n2) - x(n1)).toFixed(1)}" height="${base - T}" fill="${col}" opacity=".2"/>`; }).join("");
+  s += shade(wm, css("--mal")) + shade(wg, css("--glc"));
+  if (showRange) s += `<rect x="${x(1680)}" y="${T}" width="${x(1740) - x(1680)}" height="${base - T}" fill="none" stroke="${css("--accent")}" stroke-dasharray="5 4" stroke-width="1.5"/>
+    <text x="${x(1710)}" y="${T + 12}" text-anchor="middle" style="fill:${css("--accent")}">사용 영역 1680–1740</text>`;
+  // grid + axis
+  for (let n = lo; n <= hi; n += 20) s += `<line x1="${x(n)}" x2="${x(n)}" y1="${T}" y2="${base}" stroke="${css("--line")}" stroke-width=".6"/><text x="${x(n)}" y="${H - B + 4}" text-anchor="middle">${n}</text>`;
+  s += `<line x1="${L}" x2="${W - R}" y1="${base}" y2="${base}" stroke="${css("--muted")}" stroke-width=".8"/>`;
+  s += `<text x="${(L + W - R) / 2}" y="${H - B + 22}" text-anchor="middle">파장 (nm${shift ? ", −20 nm 이동" : ", 보정 계산값"})</text>`;
+  s += `<text x="12" y="${(T + base) / 2}" transform="rotate(-90 12 ${(T + base) / 2})" text-anchor="middle">그램당 상대 흡광</text>`;
+  s += line(g, css("--glc")) + line(m, css("--mal"));
+  // stick ticks of the selected molecule (or both β forms)
+  const mols = filter === "all" ? ["b-glucose", "b-maltose"] : [filter];
+  let row = 0;
+  for (const mol of mols) {
+    const col = mol.includes("glucose") ? css("--glc") : css("--mal"), yy = H - B + 32 + row * 12;
+    s += `<text x="${L - 4}" y="${yy + 4}" text-anchor="end">${NAMES[mol]}</text>`;
+    for (const r of D.ch) if (r.mol === mol) { const n = 1e7 / r.cal2 + shift; if (n < lo || n > hi) continue;
+      const isSel = selected && selected.mol === r.mol && selected.label === r.label;
+      s += `<line x1="${x(n)}" x2="${x(n)}" y1="${yy - 5}" y2="${yy + 5}" stroke="${isSel ? css("--hi") : col}" stroke-width="${isSel ? 3 : 1.5}"/>`; }
+    row++;
+  }
+  if (selected) { const n = 1e7 / selected.cal2 + shift;
+    if (n >= lo && n <= hi) s += `<line x1="${x(n)}" x2="${x(n)}" y1="${T}" y2="${base}" stroke="${css("--hi")}" stroke-width="1.5" stroke-dasharray="3 3"/>
+      <text x="${x(n) + 4}" y="${T + 28}" style="fill:${css("--hi")}">${NAMES[selected.mol]} ${selected.label}</text>`; }
+  document.getElementById("chart").innerHTML = s;
+  const fmt = w => w.map(([a, b]) => `${(1e7 / b + shift).toFixed(0)}–${(1e7 / a + shift).toFixed(0)} nm`).join(", ") || "없음";
+  document.getElementById("winText").textContent = `엿당이 큰 구간: ${fmt(wm)} · 포도당이 큰 구간: ${fmt(wg)} · 최대 상대 차이 ${(Math.max(...d.map(Math.abs)) * 100).toFixed(0)} %`;
+}
+
+/* ---------- table ---------- */
+function buildFilters() {
+  const f = document.getElementById("filters");
+  const opts = [["all", "전체"], ...Object.entries(NAMES)];
+  f.innerHTML = opts.map(([k, v]) => `<button type="button" class="chip" data-k="${k}" aria-pressed="${k === filter}">${v}</button>`).join("");
+  f.querySelectorAll("button").forEach(b => b.addEventListener("click", () => { filter = b.dataset.k; buildFilters(); buildTable(); drawChart(); }));
+}
+function buildTable() {
+  const rows = D.ch.filter(r => filter === "all" || r.mol === filter).slice().sort((a, b) => b.cal2 - a.cal2);
+  document.getElementById("tbody").innerHTML = rows.map(r => {
+    const lpc = r.lp >= 1.5 ? "lp2" : r.lp <= 0.5 ? "lp0" : "";
+    const sel = selected && selected.mol === r.mol && selected.label === r.label;
+    return `<tr tabindex="0" data-mol="${r.mol}" data-label="${r.label}" aria-selected="${sel}">
+      <td>${NAMES[r.mol]}</td><td class="mono">${r.label}</td><td>${r.cls}</td><td>${ORIENT[r.orient] || r.orient}</td>
+      <td class="num"><span class="pill ${lpc}">${r.lp.toFixed(1)}</span></td><td class="num">${r.r.toFixed(4)}</td>
+      <td class="num">${r.xtb2.toFixed(0)}</td><td class="num">${r.cal2.toFixed(0)}</td><td class="num">${(1e7 / r.cal2).toFixed(0)}</td>
+      <td class="num">${r.dft2 ? r.dft2.toFixed(0) : "–"}</td></tr>`; }).join("");
+  document.querySelectorAll("#tbody tr").forEach(tr => {
+    const pick = () => select(tr.dataset.mol, tr.dataset.label);
+    tr.addEventListener("click", pick);
+    tr.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } });
+  });
+}
+function select(mol, label) {
+  selected = D.ch.find(r => r.mol === mol && r.label === label);
+  buildTable(); drawChart(); show3D(); showInfo();
+}
+function showInfo() {
+  const r = selected, el = document.getElementById("selInfo");
+  if (!r) { el.innerHTML = `<span class="note">표에서 C-H를 고르세요.</span>`; return; }
+  el.innerHTML = `<b>${NAMES[r.mol]} · ${r.label}</b>
+    <div class="kv"><span>유형</span><span>${r.cls}</span><span>방향</span><span>${ORIENT[r.orient] || r.orient}</span>
+    <span>정반대편 전자쌍</span><span class="num">${r.lp.toFixed(1)}</span><span>C-H 길이</span><span class="num">${r.r.toFixed(4)} Å</span>
+    <span>H-C-O-X 이면각</span><span class="num">${r.dih.map(d => `${d.o} ${d.deg}°`).join(", ")}</span>
+    <span>1차 배음 (보정)</span><span class="num">${r.cal2.toFixed(0)} cm⁻¹ = ${(1e7 / r.cal2).toFixed(0)} nm</span>
+    <span>2차 배음 (보정)</span><span class="num">${r.cal3.toFixed(0)} cm⁻¹ = ${(1e7 / r.cal3).toFixed(0)} nm</span></div>`;
+}
+
+/* ---------- 3D ---------- */
+let viewer = null, curMol = null;
+function show3D() {
+  if (!window.$3Dmol) return;
+  const mol = selected ? selected.mol : (filter === "all" ? "b-maltose" : filter);
+  if (!viewer) { document.getElementById("vmsg").remove();
+    viewer = $3Dmol.createViewer(document.getElementById("viewer"), { backgroundColor: css("--bg") }); }
+  if (curMol !== mol) { viewer.clear(); viewer.addModel(D.molecules[mol].xyz, "xyz"); curMol = mol; viewer.zoomTo(); }
+  viewer.setStyle({}, { stick: { radius: 0.13, colorscheme: "Jmol" }, sphere: { scale: 0.18, colorscheme: "Jmol" } });
+  viewer.removeAllLabels();
+  if (selected && selected.mol === mol) {
+    viewer.setStyle({ index: selected.h }, { sphere: { radius: 0.42, color: css("--hi") }, stick: { radius: 0.13, color: css("--hi") } });
+    viewer.setStyle({ index: selected.c }, { sphere: { radius: 0.38, color: "#8c96a3" }, stick: { radius: 0.13, colorscheme: "Jmol" } });
+    viewer.addLabel(selected.label, { fontSize: 12, fontColor: "white", backgroundColor: css("--hi"), backgroundOpacity: 0.9 }, { index: selected.h });
+  }
+  viewer.render();
+}
+
+/* ---------- rules + calibration ---------- */
+function buildRules() {
+  const grp = [["2개", r => r.lp >= 1.5, "β 아노머 C1-H"], ["1개", r => r.lp >= 0.75 && r.lp < 1.5, "대부분의 고리 C-H"],
+               ["0개 또는 일부", r => r.lp < 0.75, "α C2-H, 글리코시드 C-H, CH2 일부"]];
+  document.getElementById("rules").innerHTML = grp.map(([n, f, ex]) => {
+    const rs = D.ch.filter(f), rr = rs.map(r => r.r), nm = rs.map(r => 1e7 / r.cal2);
+    return `<tr><td>${n} <span class="note">(n=${rs.length})</span></td><td class="num">${(rr.reduce((a, b) => a + b, 0) / rr.length).toFixed(3)} Å</td>
+      <td class="num">${Math.min(...nm).toFixed(0)}–${Math.max(...nm).toFixed(0)} nm</td><td>${ex}</td></tr>`; }).join("");
+}
+function drawCal() {
+  const c = D.calib, P = D.pairs, W = 360, H = 260, L = 46, R = 12, T = 12, B = 36;
+  const xs = P.map(p => p.xtb), ys = P.map(p => p.dft);
+  const x0 = Math.min(...xs) - 40, x1 = Math.max(...xs) + 40, y0 = Math.min(...ys) - 40, y1 = Math.max(...ys) + 40;
+  const X = v => L + (v - x0) / (x1 - x0) * (W - L - R), Y = v => T + (1 - (v - y0) / (y1 - y0)) * (H - T - B);
+  let s = `<line x1="${L}" y1="${H - B}" x2="${W - R}" y2="${H - B}" stroke="${css("--muted")}" stroke-width=".8"/><line x1="${L}" y1="${T}" x2="${L}" y2="${H - B}" stroke="${css("--muted")}" stroke-width=".8"/>`;
+  for (let v = Math.ceil(x0 / 100) * 100; v <= x1; v += 200) s += `<text x="${X(v)}" y="${H - B + 14}" text-anchor="middle">${v}</text>`;
+  for (let v = Math.ceil(y0 / 100) * 100; v <= y1; v += 100) s += `<text x="${L - 4}" y="${Y(v) + 4}" text-anchor="end">${v}</text>`;
+  s += `<text x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">xTB 1차 배음 (cm⁻¹)</text>`;
+  s += `<line x1="${X(x0)}" y1="${Y(c.a + c.b * x0)}" x2="${X(x1)}" y2="${Y(c.a + c.b * x1)}" stroke="${css("--accent")}" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  for (const p of P) { const glyc = p.cls.includes("glyc");
+    s += `<circle cx="${X(p.xtb)}" cy="${Y(p.dft)}" r="5" fill="${glyc ? css("--mal") : css("--glc")}" stroke="${css("--panel")}" stroke-width="1.5"><title>${p.mol} ${p.label}: xTB ${p.xtb}, DFT ${p.dft}</title></circle>`; }
+  document.getElementById("calChart").innerHTML = s;
+  document.getElementById("calText").innerHTML = `DFT = ${c.a.toFixed(0)} + ${c.b.toFixed(3)} × xTB (쌍 ${c.n}개, 잔차 ${c.rmse.toFixed(0)} cm⁻¹ ≈ ±${(c.rmse * 0.3).toFixed(0)} nm). 주황 점은 글리코시드 모델 분자입니다. 세로축은 DFT 값입니다.`;
+}
+
+/* ---------- init ---------- */
+buildFilters(); buildTable(); buildRules(); drawCal(); showInfo();
+selected = D.ch.find(r => r.mol === "b-maltose" && r.label === "red. C4-H");
+buildTable(); drawChart(); showInfo();
+["fwhm", "shift", "range"].forEach(id => document.getElementById(id).addEventListener("input", drawChart));
+if (window.$3Dmol) show3D();
+else document.getElementById("vmsg").textContent = "3D 뷰어 라이브러리를 불러오지 못했습니다. 표와 그래프는 그대로 쓸 수 있습니다.";
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { drawChart(); drawCal(); if (viewer) { viewer.setBackgroundColor(css("--bg")); show3D(); } });
+</script>
