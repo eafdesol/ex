@@ -83,7 +83,7 @@ ol, ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; max-width: 76c
   <div class="bar" role="region" aria-label="표시 설정">
     <div class="chips" id="molChips" role="group" aria-label="분자 선택"></div>
     <div class="row">
-      <label for="elem">결합 <select id="elem"><option value="all">전체</option><option value="C">C-H만</option><option value="O">O-H만</option></select></label>
+      <label for="elem">결합 <select id="elem"><option value="C" selected>C-H만</option><option value="all">C-H + O-H</option><option value="O">O-H만 (신뢰도 낮음)</option></select></label>
       <label for="fwhm">밴드 폭 <input type="range" id="fwhm" min="30" max="160" step="10" value="60"><span class="mono" id="fwhmv">60</span> cm⁻¹</label>
       <label for="water">물 광로 <select id="water"><option value="0">표시 안 함</option><option value="0.5">0.5 mm</option><option value="1" selected>1 mm</option><option value="2">2 mm</option><option value="10">10 mm</option></select></label>
       <label for="shift">위치 이동 <input type="range" id="shift" min="-40" max="40" step="1" value="0"><span class="mono" id="shiftv">0</span> nm</label>
@@ -173,7 +173,7 @@ const KEYS = Object.keys(D.molecules);
 const COLORS = ["--m1", "--m2", "--m3", "--m4", "--m5", "--m6"];
 const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const colorOf = key => css(COLORS[KEYS.indexOf(key) % COLORS.length]);
-const st = { sel: new Set(KEYS.slice(0, 2)), elem: "all", fwhm: 60, water: 1, shift: 0, mode: "sum",
+const st = { sel: new Set(KEYS.slice(0, 2)), elem: "C", fwhm: 60, water: 1, shift: 0, mode: "sum",
              A: KEYS[0], B: KEYS[1] || KEYS[0], detMol: KEYS[0], detForm: "", picked: null };
 const RANGES = { 2: [1300, 1950], 3: [950, 1350] };
 const nm2 = v => 1e7 / v;
