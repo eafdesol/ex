@@ -1,3 +1,5 @@
 __pycache__/
 *.pyc
 results_localmode/*.log
+results_xh_run.log
+results_xh_dft_*.log

@@ -1,0 +1,373 @@
+<title>X-H 배음 영역 탐색기</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: sticky control bar, then full-width chart panels, comparison, summary table, detail table + 3D side by side. */
+:root {
+  --bg: #f4f6f8; --panel: #ffffff; --fg: #18212b; --muted: #5b6878; --line: #d9dfe6; --soft: #eef2f6;
+  --accent: #3d5a80; --hi: #c23b5a; --water: #8a97a5;
+  --m1: #2b6c9e; --m2: #b8701a; --m3: #2f8a5b; --m4: #8a4fb0; --m5: #b04a4a; --m6: #4a8a8f;
+  --font-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #11151a; --panel: #192028; --fg: #e2e7ed; --muted: #97a3b0; --line: #2c3743; --soft: #1f2832;
+  --accent: #8fb0d8; --hi: #f07a94; --water: #7d8896;
+  --m1: #6aa8da; --m2: #e7a24c; --m3: #5cc08a; --m4: #b98be0; --m5: #e57f7f; --m6: #6cc3c9; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #11151a; --panel: #192028; --fg: #e2e7ed; --muted: #97a3b0; --line: #2c3743; --soft: #1f2832;
+  --accent: #8fb0d8; --hi: #f07a94; --water: #7d8896;
+  --m1: #6aa8da; --m2: #e7a24c; --m3: #5cc08a; --m4: #b98be0; --m5: #e57f7f; --m6: #6cc3c9; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.6; }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--panel); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 24px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 24px; }
+h1 { font-size: 1.6rem; font-weight: 600; margin: 0; text-wrap: balance; }
+h2 { font-size: 1.1rem; font-weight: 600; margin: 0; text-wrap: balance; }
+h3 { font-size: .95rem; font-weight: 600; margin: 0; }
+p { margin: 0; max-width: 72ch; }
+.lead, .note { color: var(--muted); }
+.note { font-size: .85rem; }
+.eyebrow { font-family: var(--font-mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 12px; min-width: 0; }
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; display: grid; gap: 10px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px 18px; align-items: center; font-size: .88rem; color: var(--muted); }
+.row label { display: inline-flex; gap: 6px; align-items: center; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: inherit; font-size: .85rem; border: 1px solid var(--line); background: transparent; color: var(--fg); border-radius: 999px; padding: 3px 12px; cursor: pointer; display: inline-flex; gap: 6px; align-items: center; }
+.chip[aria-pressed="true"] { border-color: var(--fg); background: var(--soft); font-weight: 500; }
+.dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+select, input[type=range] { accent-color: var(--accent); font: inherit; }
+select { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; }
+.chip:focus-visible, tr:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--hi); outline-offset: 2px; }
+.mono, .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.split { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .grid2, .split { grid-template-columns: minmax(0, 1fr); } }
+.chart { overflow-x: auto; }
+.chart svg { width: 100%; min-width: 520px; display: block; }
+svg text { fill: var(--muted); font-family: var(--font-mono); font-size: 11px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: .82rem; color: var(--muted); }
+.sw { display: inline-block; width: 18px; height: 3px; vertical-align: middle; margin-right: 6px; border-radius: 2px; }
+.tablebox { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; max-height: 560px; }
+table { border-collapse: collapse; width: 100%; font-size: .84rem; }
+th, td { padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-weight: 500; color: var(--muted); background: var(--panel); position: sticky; top: 0; font-size: .76rem; z-index: 1; }
+td.num, th.num { text-align: right; }
+#detail tbody tr { cursor: pointer; }
+#detail tbody tr:hover { background: var(--soft); }
+#detail tbody tr[aria-selected="true"] { background: color-mix(in srgb, var(--hi) 14%, transparent); }
+.pill { display: inline-block; font-size: .72rem; padding: 0 8px; border-radius: 999px; border: 1px solid var(--line); white-space: nowrap; }
+.pill.ok { color: var(--m3); border-color: var(--m3); }
+.pill.low { color: var(--hi); border-color: var(--hi); }
+#viewer { position: relative; width: 100%; aspect-ratio: 4 / 3; border-radius: 8px; background: var(--bg); border: 1px solid var(--line); overflow: hidden; }
+#viewer .msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: .85rem; padding: 16px; text-align: center; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: .85rem; }
+.kv span:nth-child(odd) { color: var(--muted); }
+.wins { display: grid; gap: 4px; font-size: .86rem; }
+code, pre { font-family: var(--font-mono); font-size: .82rem; }
+code { background: var(--soft); padding: 1px 5px; border-radius: 4px; }
+pre { background: var(--soft); padding: 10px 12px; border-radius: 8px; overflow-x: auto; margin: 0; }
+ol, ul { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; max-width: 76ch; }
+</style>
+
+<div class="wrap">
+  <header style="display:grid;gap:8px">
+    <div class="eyebrow">Local-mode 양자계산 · GFN2-xTB, B3LYP 보정 · 물 연속체 모델</div>
+    <h1>X-H 배음 영역 탐색기</h1>
+    <p class="lead">분자 안의 C-H, O-H 결합을 하나씩 계산한 NIR 배음 위치를 모아 놓은 페이지입니다. 분자를 고르면 전체 영역대, 결합 종류별 영역대, 두 분자를 구분하는 구간을 볼 수 있습니다. 모든 위치는 파수(cm⁻¹)와 파장(nm)을 함께 씁니다.</p>
+  </header>
+
+  <div class="bar" role="region" aria-label="표시 설정">
+    <div class="chips" id="molChips" role="group" aria-label="분자 선택"></div>
+    <div class="row">
+      <label for="elem">결합 <select id="elem"><option value="all">전체</option><option value="C">C-H만</option><option value="O">O-H만</option></select></label>
+      <label for="fwhm">밴드 폭 <input type="range" id="fwhm" min="30" max="160" step="10" value="60"><span class="mono" id="fwhmv">60</span> cm⁻¹</label>
+      <label for="water">물 광로 <select id="water"><option value="0">표시 안 함</option><option value="0.5">0.5 mm</option><option value="1" selected>1 mm</option><option value="2">2 mm</option><option value="10">10 mm</option></select></label>
+      <label for="shift">위치 이동 <input type="range" id="shift" min="-40" max="40" step="1" value="0"><span class="mono" id="shiftv">0</span> nm</label>
+    </div>
+  </div>
+
+  <section class="panel">
+    <div style="display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:end">
+      <div><h2>전체 영역대 (그램당)</h2><p class="note">선택한 분자의 모든 형태를 평형 비율로 더한 스펙트럼입니다. O-H는 물속 수소결합으로 넓어지는 것을 감안해 밴드 폭을 2배로 그립니다. 회색 점선은 물의 흡광도(오른쪽 축)입니다.</p></div>
+      <label class="row" for="mode">보기 <select id="mode"><option value="sum">분자 합계</option></select></label>
+    </div>
+    <div class="grid2">
+      <div><h3>1차 배음 (0→2)</h3><div class="chart"><svg id="c1" viewBox="0 0 620 330" role="img" aria-label="1차 배음 영역 스펙트럼"></svg></div></div>
+      <div><h3>2차 배음 (0→3)</h3><div class="chart"><svg id="c2" viewBox="0 0 620 330" role="img" aria-label="2차 배음 영역 스펙트럼"></svg></div></div>
+    </div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <section class="panel">
+    <div><h2>두 분자 비교</h2><p class="note">그램당 차이 스펙트럼입니다. 색 띠는 한쪽이 더 크게 흡수하는 구간(차이가 최대치의 50 % 이상)입니다. PLS 영역 후보로 쓸 수 있습니다.</p></div>
+    <div class="row">
+      <label for="cmpA">A <select id="cmpA"></select></label>
+      <label for="cmpB">B <select id="cmpB"></select></label>
+    </div>
+    <div class="grid2">
+      <div><h3>1차 배음 차이 (A − B)</h3><div class="chart"><svg id="d1" viewBox="0 0 620 260" role="img" aria-label="1차 배음 차이 스펙트럼"></svg></div></div>
+      <div><h3>2차 배음 차이 (A − B)</h3><div class="chart"><svg id="d2" viewBox="0 0 620 260" role="img" aria-label="2차 배음 차이 스펙트럼"></svg></div></div>
+    </div>
+    <div class="wins" id="winList"></div>
+  </section>
+
+  <section class="panel">
+    <div><h2>결합 종류별 영역대</h2><p class="note">같은 종류로 분류된 결합들이 흡수하는 범위(모든 형태 포함)와, 분자 하나당 평균 개수(형태 비율 가중)입니다.</p></div>
+    <div class="tablebox"><table id="summary"><thead></thead><tbody></tbody></table></div>
+  </section>
+
+  <section class="split">
+    <div class="panel">
+      <div><h2>결합별 상세</h2><p class="note">행을 누르면 3D 구조와 위 그래프에 표시됩니다. “전자쌍”은 C-H 정반대편에 놓인 산소 비공유 전자쌍 수(형태 가중 평균), “수소결합”은 O-H의 H가 다른 산소와 2.5 Å 안에 있는 비율입니다.</p></div>
+      <div class="row">
+        <label for="detMol">분자 <select id="detMol"></select></label>
+        <label for="detForm">형태 <select id="detForm"></select></label>
+      </div>
+      <div class="tablebox"><table id="detail"><thead><tr>
+        <th>결합</th><th>분류</th><th>방향</th><th class="num">전자쌍 / 수소결합</th><th class="num">길이 (Å)</th>
+        <th class="num">1차 배음</th><th class="num">2차 배음</th><th>신뢰도</th>
+      </tr></thead><tbody></tbody></table></div>
+    </div>
+    <div class="panel">
+      <h2>3D 구조</h2>
+      <div id="viewer"><div class="msg" id="vmsg">3D 뷰어를 불러오는 중입니다.</div></div>
+      <div id="selInfo" class="kv"></div>
+    </div>
+  </section>
+
+  <section class="grid2">
+    <div class="panel">
+      <h2>방법과 신뢰도</h2>
+      <ol>
+        <li>RDKit로 형태를 만들고 6각 고리는 의자형만 남긴 뒤, GFN2-xTB(ALPB 물)로 최적화해 2 kcal/mol 안의 형태를 Boltzmann 가중합니다.</li>
+        <li>X-H마다 H를 결합 방향으로 −0.30 ~ +0.70 Å, 15점 옮기며 에너지와 쌍극자를 계산합니다(에너지 곡선 스캔).</li>
+        <li>그 곡선으로 1차원 진동 슈뢰딩거 방정식을 풀어 0→1, 0→2, 0→3 위치와 세기를 얻습니다.</li>
+        <li>같은 결합을 DFT(B3LYP/6-31G**, ddCOSMO)로도 스캔해 결합 종류별로 xTB→DFT 직선 보정식을 만듭니다.</li>
+        <li>형태 비율(문헌 근사값)과 분자량으로 그램당 스펙트럼을 만듭니다.</li>
+      </ol>
+      <p class="note"><b>C-H</b>는 위치의 상대 순서와 간격이 비교적 믿을 만하지만, 절대 위치는 실측보다 10–20 nm 어긋날 수 있습니다(위 “위치 이동”으로 실측 피크에 맞추세요). <b>O-H</b>는 물 분자와의 수소결합을 연속체 모델이 표현하지 못해, 실제 수용액보다 고파수(단파장)로 나올 가능성이 큽니다. 세기는 xTB 값 그대로라 위치보다 덜 정확합니다. 형태 비율은 기억에 의존한 문헌 근사값입니다.</p>
+    </div>
+    <div class="panel">
+      <h2>xTB → DFT 보정</h2>
+      <div class="tablebox"><table id="calib"><thead><tr><th>결합</th><th>전이</th><th>보정식</th><th class="num">잔차</th><th class="num">쌍</th></tr></thead><tbody></tbody></table></div>
+      <h3>분자 추가하기</h3>
+      <p class="note">계산은 Python에서 하고, 이 페이지는 결과를 보여줍니다. 저장소에서 <code>xh_molecules.py</code>에 분자를 적고 아래를 실행하면 페이지가 다시 만들어집니다.</p>
+<pre>python run_xh.py 분자키
+python build_xh_viewer.py</pre>
+<pre>"tagatose": {"name": "타가토스", "en": "D-tagatose", "kind": "케토헥소스",
+  "forms": {"α-피라노스": {"template": T_KETOPYR,
+              "cip": {2: "S", 3: "S", 4: "S", 5: "R"}, "pop": 0.8}, ...}}</pre>
+      <p class="note">예시의 CIP 표기와 비율은 형식을 보여주기 위한 자리표시입니다. 실제 값은 해당 분자의 IUPAC 이름과 문헌에서 확인해 넣으세요.</p>
+    </div>
+  </section>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/3dmol@2.4.0/build/3Dmol-min.js"></script>
+<script>
+const D = /*DATA*/null;
+const KEYS = Object.keys(D.molecules);
+const COLORS = ["--m1", "--m2", "--m3", "--m4", "--m5", "--m6"];
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const colorOf = key => css(COLORS[KEYS.indexOf(key) % COLORS.length]);
+const st = { sel: new Set(KEYS.slice(0, 2)), elem: "all", fwhm: 60, water: 1, shift: 0, mode: "sum",
+             A: KEYS[0], B: KEYS[1] || KEYS[0], detMol: KEYS[0], detForm: "", picked: null };
+const RANGES = { 2: [1300, 1950], 3: [950, 1350] };
+const nm2 = v => 1e7 / v;
+const posK = (b, v) => b["cal" + v] ?? b["nu" + v];                 // cm^-1
+const posNm = (b, v) => 1e7 / posK(b, v) + st.shift;               // nm, shifted
+const keep = b => st.elem === "all" || b.elem === st.elem;
+const fmt = (x, d = 0) => x == null ? "–" : x.toLocaleString("en-US", { maximumFractionDigits: d, minimumFractionDigits: d });
+
+/* ---------------- spectra ---------------- */
+function grid(v) { const [a, b] = RANGES[v], g = []; for (let x = a; x <= b; x += 1) g.push(x); return g; }
+function spectrum(key, v, formName) {
+  const m = D.molecules[key], g = grid(v), A = new Float64Array(g.length), ks = g.map(x => 1e7 / x);
+  for (const [fn, f] of Object.entries(m.forms)) {
+    if (formName && fn !== formName) continue;
+    const p = formName ? 1 : f.pop;
+    for (const b of f.bonds) {
+      if (!keep(b)) continue;
+      const kc = 1e7 / posNm(b, v), s = st.fwhm * (b.elem === "O" ? 2 : 1) / 2.3548, I = b["I" + v] * p;
+      for (let i = 0; i < g.length; i++) { const z = (ks[i] - kc) / s; if (z > -6 && z < 6) A[i] += I * Math.exp(-0.5 * z * z); }
+    }
+  }
+  return { g, A: Array.from(A, a => a / m.mw) };
+}
+function waterA(g) {
+  const nm = D.water.nm, al = D.water.alpha, l = st.water / 10;
+  return g.map(x => { const i = Math.min(nm.length - 2, Math.max(0, Math.floor((x - nm[0]) / 2)));
+    const t = (x - nm[i]) / 2, a = al[i] * (1 - t) + al[i + 1] * t; return a * l / Math.LN10; });
+}
+function axes(W, H, L, R, T, B, lo, hi, yLabel, y2) {
+  const x = n => L + (n - lo) / (hi - lo) * (W - L - R);
+  let s = `<line x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}" stroke="${css("--muted")}" stroke-width=".8"/>`;
+  const step = hi - lo > 500 ? 100 : 50;
+  for (let n = Math.ceil(lo / step) * step; n <= hi; n += step)
+    s += `<line x1="${x(n)}" x2="${x(n)}" y1="${T}" y2="${H - B}" stroke="${css("--line")}" stroke-width=".6"/><text x="${x(n)}" y="${H - B + 14}" text-anchor="middle">${n}</text><text x="${x(n)}" y="${H - B + 26}" text-anchor="middle" style="font-size:9px">${Math.round(1e7 / n)}</text>`;
+  s += `<text x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">파장 nm (아래 줄: cm⁻¹)</text>`;
+  s += `<text x="10" y="${(T + H - B) / 2}" transform="rotate(-90 10 ${(T + H - B) / 2})" text-anchor="middle">${yLabel}</text>`;
+  if (y2) s += `<text x="${W - 4}" y="${(T + H - B) / 2}" transform="rotate(90 ${W - 4} ${(T + H - B) / 2})" text-anchor="middle">${y2}</text>`;
+  return { s, x };
+}
+const poly = (g, A, x, y, col, w = 2, dash = "") => `<polyline fill="none" stroke="${col}" stroke-width="${w}" ${dash ? `stroke-dasharray="${dash}"` : ""} points="${g.map((n, i) => `${x(n).toFixed(1)},${y(A[i]).toFixed(1)}`).join(" ")}"/>`;
+
+function drawPanels() {
+  const series = [];
+  if (st.mode === "sum") for (const k of KEYS) { if (st.sel.has(k)) series.push({ key: k, label: D.molecules[k].name, col: colorOf(k) }); }
+  else { const k = st.mode, fs = Object.keys(D.molecules[k].forms);
+    fs.forEach((fn, i) => series.push({ key: k, form: fn, label: `${D.molecules[k].name} ${fn} (${(D.molecules[k].forms[fn].pop * 100).toFixed(1)} %)`, col: css(COLORS[i % COLORS.length]) })); }
+  for (const v of [2, 3]) {
+    const W = 620, H = 330, L = 30, R = 34, T = 12, B = 40, [lo, hi] = RANGES[v];
+    const S = series.map(sr => ({ ...sr, ...spectrum(sr.key, v, sr.form) }));
+    const mx = Math.max(1e-30, ...S.flatMap(s => s.A));
+    const { s: ax, x } = axes(W, H, L, R, T, B, lo, hi, "그램당 상대 흡광", st.water ? "물 흡광도" : "");
+    const y = a => T + (1 - a / mx) * (H - T - B);
+    let s = ax;
+    if (st.water) { const g = grid(v), wa = waterA(g), wm = 3; const yw = a => T + (1 - Math.min(a, wm) / wm) * (H - T - B);
+      s += poly(g, wa, x, yw, css("--water"), 1.5, "5 4");
+      for (const t of [1, 2, 3]) s += `<text x="${W - R + 4}" y="${yw(t) + 4}">${t}</text>`; }
+    for (const sr of S) s += poly(sr.g, sr.A, x, y, sr.col);
+    if (st.picked && keep(st.picked.b)) { const n = posNm(st.picked.b, v);
+      if (n >= lo && n <= hi) s += `<line x1="${x(n)}" x2="${x(n)}" y1="${T}" y2="${H - B}" stroke="${css("--hi")}" stroke-dasharray="3 3" stroke-width="1.5"/><text x="${x(n) + 4}" y="${T + 12}" style="fill:${css("--hi")}">${st.picked.b.label}</text>`; }
+    document.getElementById("c" + (v - 1)).innerHTML = s;
+  }
+  document.getElementById("legend").innerHTML = series.map(s => `<span><i class="sw" style="background:${s.col}"></i>${s.label}</span>`).join("") +
+    (st.water ? `<span><i class="sw" style="background:${css("--water")}"></i>물 (${st.water} mm)</span>` : "");
+}
+
+function windows(g, d, sign) {
+  const m = Math.max(...d.map(Math.abs)), out = []; let s0 = null;
+  d.forEach((v, i) => { const on = sign * v > 0.5 * m && m > 0;
+    if (on && s0 === null) s0 = i;
+    if ((!on || i === d.length - 1) && s0 !== null) { const e = on ? i : i - 1; if (g[e] - g[s0] >= 4) out.push([g[s0], g[e]]); s0 = null; } });
+  return out;
+}
+function drawCompare() {
+  const lines = [];
+  for (const v of [2, 3]) {
+    const a = spectrum(st.A, v), b = spectrum(st.B, v), g = a.g;
+    const mx = Math.max(1e-30, ...a.A, ...b.A), d = a.A.map((x, i) => (x - b.A[i]) / mx);
+    const W = 620, H = 260, L = 30, R = 34, T = 12, B = 40, [lo, hi] = RANGES[v];
+    const { s: ax, x } = axes(W, H, L, R, T, B, lo, hi, "(A − B) / 최대", "");
+    const dm = Math.max(1e-9, ...d.map(Math.abs)), y = q => T + (1 - (q / dm + 1) / 2) * (H - T - B);
+    let s = ax + `<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="${css("--muted")}" stroke-width=".6"/>`;
+    const wA = windows(g, d, 1), wB = windows(g, d, -1);
+    for (const [p, q] of wA) s += `<rect x="${x(p)}" y="${T}" width="${Math.max(1, x(q) - x(p))}" height="${H - T - B}" fill="${colorOf(st.A)}" opacity=".18"/>`;
+    for (const [p, q] of wB) s += `<rect x="${x(p)}" y="${T}" width="${Math.max(1, x(q) - x(p))}" height="${H - T - B}" fill="${colorOf(st.B)}" opacity=".18"/>`;
+    s += poly(g, d, x, y, css("--fg"), 1.8);
+    document.getElementById("d" + (v - 1)).innerHTML = s;
+    const wa = st.water ? waterA(g) : null;
+    const desc = (ws, who) => ws.map(([p, q]) => { const k1 = 1e7 / q, k2 = 1e7 / p;
+      let w = ""; if (wa) { const i1 = g.indexOf(p), i2 = g.indexOf(q); const seg = wa.slice(i1, i2 + 1); w = ` · 물 A ${Math.min(...seg).toFixed(2)}–${Math.max(...seg).toFixed(2)}`; }
+      return `<div><b style="color:${colorOf(who)}">${D.molecules[who].name}</b>가 큼: <span class="mono">${p}–${q} nm (${fmt(k1)}–${fmt(k2)} cm⁻¹)</span>${w}</div>`; }).join("");
+    lines.push(`<div class="note">${v === 2 ? "1차 배음" : "2차 배음"} · 최대 상대 차이 ${(dm * 100).toFixed(0)} %</div>` + (desc(wA, st.A) + desc(wB, st.B) || `<div class="note">뚜렷한 구간 없음</div>`));
+  }
+  document.getElementById("winList").innerHTML = st.A === st.B ? `<div class="note">서로 다른 두 분자를 고르세요.</div>` : lines.join("");
+}
+
+/* ---------------- tables ---------------- */
+function drawSummary() {
+  const keys = KEYS.filter(k => st.sel.has(k));
+  const cls = new Map();
+  for (const k of keys) for (const f of Object.values(D.molecules[k].forms)) for (const b of f.bonds) {
+    if (!keep(b)) continue;
+    const id = b.elem + "|" + b.cls; if (!cls.has(id)) cls.set(id, { elem: b.elem, cls: b.cls, per: {} });
+    const e = cls.get(id), p = (e.per[k] ||= { n: 0, l2: [], l3: [] });
+    p.n += f.pop; p.l2.push(posNm(b, 2)); p.l3.push(posNm(b, 3));
+  }
+  const head = `<tr><th>결합</th><th>분류</th>${keys.map(k => `<th style="color:${colorOf(k)}">${D.molecules[k].name}<br><span style="font-weight:400">개수 · 1차 배음 · 2차 배음</span></th>`).join("")}</tr>`;
+  const rng = a => { const lo = Math.min(...a), hi = Math.max(...a); return `${lo.toFixed(0)}–${hi.toFixed(0)} nm`; };
+  const rows = [...cls.values()].sort((a, b) => a.elem.localeCompare(b.elem) || a.cls.localeCompare(b.cls)).map(e =>
+    `<tr><td>${e.elem}-H</td><td>${e.cls}</td>${keys.map(k => { const p = e.per[k];
+      return p ? `<td class="mono">${p.n.toFixed(2)} · ${rng(p.l2)} · ${rng(p.l3)}</td>` : `<td class="note">–</td>`; }).join("")}</tr>`).join("");
+  document.querySelector("#summary thead").innerHTML = head;
+  document.querySelector("#summary tbody").innerHTML = rows || `<tr><td class="note">분자를 하나 이상 고르세요.</td></tr>`;
+}
+function drawDetail() {
+  const m = D.molecules[st.detMol], forms = Object.keys(m.forms);
+  if (!forms.includes(st.detForm)) st.detForm = forms[0];
+  document.getElementById("detForm").innerHTML = forms.map(f => `<option value="${f}" ${f === st.detForm ? "selected" : ""}>${f} (${(m.forms[f].pop * 100).toFixed(1)} %)</option>`).join("");
+  const bonds = m.forms[st.detForm].bonds.filter(keep).slice().sort((a, b) => posK(b, 2) - posK(a, 2));
+  document.querySelector("#detail tbody").innerHTML = bonds.map(b => {
+    const sel = st.picked && st.picked.mol === st.detMol && st.picked.form === st.detForm && st.picked.b.label === b.label;
+    const env = b.elem === "C" ? (b.lp ?? 0).toFixed(1) : `${Math.round((b.hb ?? 0) * 100)} %`;
+    const ori = { ax: "축", eq: "적도" }[b.orient] || "–";
+    return `<tr tabindex="0" data-l="${b.label}" aria-selected="${sel}"><td class="mono">${b.label}</td><td>${b.cls}</td><td>${ori}</td>
+      <td class="num">${env}</td><td class="num">${b.r.toFixed(3)}</td>
+      <td class="num">${fmt(posK(b, 2))} cm⁻¹ · ${posNm(b, 2).toFixed(0)} nm</td><td class="num">${fmt(posK(b, 3))} cm⁻¹ · ${posNm(b, 3).toFixed(0)} nm</td>
+      <td><span class="pill ${b.rel === "보통" ? "ok" : "low"}">${b.rel}</span></td></tr>`; }).join("");
+  document.querySelectorAll("#detail tbody tr").forEach(tr => {
+    const go = () => pick(st.detMol, st.detForm, tr.dataset.l);
+    tr.addEventListener("click", go); tr.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+  });
+}
+function drawCalib() {
+  const names = { 1: "0→1", 2: "0→2 (1차 배음)", 3: "0→3 (2차 배음)" };
+  document.querySelector("#calib tbody").innerHTML = Object.entries(D.calib).flatMap(([e, c]) => Object.entries(c).map(([v, q]) =>
+    `<tr><td>${e}-H</td><td>${names[v]}</td><td class="mono">DFT = ${q.a.toFixed(0)} + ${q.b.toFixed(3)} × xTB</td><td class="num">${q.rmse.toFixed(0)} cm⁻¹</td><td class="num">${q.n}</td></tr>`)).join("")
+    || `<tr><td class="note" colspan="5">보정 쌍이 없습니다.</td></tr>`;
+}
+
+/* ---------------- 3D ---------------- */
+let viewer = null, curXyz = null;
+function show3D() {
+  if (!window.$3Dmol) return;
+  const f = D.molecules[st.detMol].forms[st.detForm];
+  if (!viewer) { document.getElementById("vmsg").remove(); viewer = $3Dmol.createViewer(document.getElementById("viewer"), { backgroundColor: css("--bg") }); }
+  if (curXyz !== f.xyz) { viewer.clear(); viewer.addModel(f.xyz, "xyz"); curXyz = f.xyz; viewer.zoomTo(); }
+  viewer.setStyle({}, { stick: { radius: 0.13, colorscheme: "Jmol" }, sphere: { scale: 0.18, colorscheme: "Jmol" } });
+  viewer.removeAllLabels();
+  const p = st.picked;
+  if (p && p.mol === st.detMol && p.form === st.detForm) {
+    viewer.setStyle({ index: p.b.h }, { sphere: { radius: 0.42, color: css("--hi") }, stick: { radius: 0.13, color: css("--hi") } });
+    viewer.setStyle({ index: p.b.x }, { sphere: { radius: 0.38, color: "#8c96a3" }, stick: { radius: 0.13, colorscheme: "Jmol" } });
+    viewer.addLabel(p.b.label, { fontSize: 12, fontColor: "white", backgroundColor: css("--hi"), backgroundOpacity: 0.9 }, { index: p.b.h });
+  }
+  viewer.render();
+}
+function pick(mol, form, label) {
+  const b = D.molecules[mol].forms[form].bonds.find(x => x.label === label);
+  st.picked = { mol, form, b };
+  drawDetail(); drawPanels(); show3D();
+  const m = D.molecules[mol];
+  document.getElementById("selInfo").innerHTML = `<span>결합</span><span><b>${m.name} · ${form} · ${b.label}</b></span>
+    <span>분류</span><span>${b.cls}</span><span>길이</span><span class="mono">${b.r.toFixed(4)} Å</span>
+    <span>ωe, ωexe (xTB)</span><span class="mono">${fmt(b.we)}, ${fmt(b.wexe, 1)} cm⁻¹</span>
+    <span>0→1</span><span class="mono">${fmt(posK(b, 1))} cm⁻¹ · ${(1e7 / posK(b, 1)).toFixed(0)} nm</span>
+    <span>0→2</span><span class="mono">${fmt(posK(b, 2))} cm⁻¹ · ${posNm(b, 2).toFixed(0)} nm</span>
+    <span>0→3</span><span class="mono">${fmt(posK(b, 3))} cm⁻¹ · ${posNm(b, 3).toFixed(0)} nm</span>
+    <span>xTB 원값 0→2</span><span class="mono">${fmt(b.nu2)} cm⁻¹ · ${(1e7 / b.nu2).toFixed(0)} nm</span>
+    <span>신뢰도</span><span>${b.rel}</span>`;
+}
+
+/* ---------------- controls ---------------- */
+function buildControls() {
+  document.getElementById("molChips").innerHTML = KEYS.map(k => { const m = D.molecules[k];
+    return `<button type="button" class="chip" data-k="${k}" aria-pressed="${st.sel.has(k)}" title="${m.en} · ${m.kind}"><i class="dot" style="background:${colorOf(k)}"></i>${m.name}</button>`; }).join("");
+  document.querySelectorAll("#molChips .chip").forEach(c => c.addEventListener("click", () => {
+    const k = c.dataset.k; st.sel.has(k) ? st.sel.delete(k) : st.sel.add(k); c.setAttribute("aria-pressed", st.sel.has(k)); redraw(); }));
+  const opts = KEYS.map(k => `<option value="${k}">${D.molecules[k].name}</option>`).join("");
+  for (const id of ["cmpA", "cmpB", "detMol"]) document.getElementById(id).innerHTML = opts;
+  document.getElementById("cmpA").value = st.A; document.getElementById("cmpB").value = st.B; document.getElementById("detMol").value = st.detMol;
+  document.getElementById("mode").innerHTML = `<option value="sum">분자 합계</option>` + KEYS.map(k => `<option value="${k}">${D.molecules[k].name}: 형태별</option>`).join("");
+  const on = (id, ev, f) => document.getElementById(id).addEventListener(ev, f);
+  on("elem", "change", e => { st.elem = e.target.value; redraw(); });
+  on("fwhm", "input", e => { st.fwhm = +e.target.value; document.getElementById("fwhmv").textContent = st.fwhm; redraw(); });
+  on("water", "change", e => { st.water = +e.target.value; redraw(); });
+  on("shift", "input", e => { st.shift = +e.target.value; document.getElementById("shiftv").textContent = st.shift; redraw(); });
+  on("mode", "change", e => { st.mode = e.target.value; drawPanels(); });
+  on("cmpA", "change", e => { st.A = e.target.value; drawCompare(); });
+  on("cmpB", "change", e => { st.B = e.target.value; drawCompare(); });
+  on("detMol", "change", e => { st.detMol = e.target.value; st.detForm = ""; drawDetail(); show3D(); });
+  on("detForm", "change", e => { st.detForm = e.target.value; drawDetail(); show3D(); });
+}
+function redraw() { drawPanels(); drawCompare(); drawSummary(); drawDetail(); }
+
+buildControls(); drawCalib(); redraw();
+if (window.$3Dmol) show3D(); else document.getElementById("vmsg").textContent = "3D 뷰어 라이브러리를 불러오지 못했습니다. 그래프와 표는 그대로 쓸 수 있습니다.";
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { redraw(); if (viewer) { viewer.setBackgroundColor(css("--bg")); show3D(); } });
+</script>
