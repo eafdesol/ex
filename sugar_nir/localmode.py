@@ -33,6 +33,20 @@ SMILES = {   # PubChem isomeric SMILES
 }
 
 
+_B = SMILES["b-glucose"]
+_A = SMILES["a-glucose"]
+MODELS = {   # small model compounds for the DFT check of maltose-specific C-H
+    # methyl alpha-glucoside: C1-H = H-C(O5)(O-C), like the non-reducing C1'-H of maltose
+    "me-a-glucoside": _A.replace("(O1)O)", "(O1)OC)"),
+    # 4-O-methyl beta-glucose: C4-H = H-C-O-C, like the reducing-unit C4-H of maltose
+    "4-OMe-b-glucose": "C([C@@H]1[C@H]([C@@H]([C@H]([C@@H](O1)O)O)O)OC)O",
+}
+
+
+def smiles_of(name):
+    return SMILES.get(name) or MODELS[name]
+
+
 # ---------------------------------------------------------------- xTB engine
 class XTB:
     def __init__(self, numbers, solvent="water"):
@@ -182,7 +196,7 @@ def check_stereo(mol, pos, labels):
 
 # --------------------------------------------------------------- conformers
 def conformers(name, n_embed=60, keep=5, window_kcal=2.0, seed=7, log=print):
-    mol = Chem.AddHs(Chem.MolFromSmiles(SMILES[name]))
+    mol = Chem.AddHs(Chem.MolFromSmiles(smiles_of(name)))
     cids = list(AllChem.EmbedMultipleConfs(mol, numConfs=n_embed, randomSeed=seed))
     mm = AllChem.MMFFOptimizeMoleculeConfs(mol, maxIters=2000)
     e_mm = np.array([e for _, e in mm])
@@ -218,7 +232,7 @@ def conformers(name, n_embed=60, keep=5, window_kcal=2.0, seed=7, log=print):
 Q = np.linspace(-0.30, 0.70, 15)       # A
 
 
-def scan_ch(engine, pos, h, c):
+def scan_ch(engine, pos, h, c, Q=Q):
     """Energies/dipoles along the C-H stretch; failed points are NaN.
     Scans outward from q=0 so each point restarts from its neighbour."""
     u = pos[h] - pos[c]
@@ -240,7 +254,7 @@ def scan_ch(engine, pos, h, c):
     return E, D
 
 
-def solve_local_mode(E, D, n_levels=5, mu=M_C * M_H / (M_C + M_H), n_grid=1200):
+def solve_local_mode(E, D, n_levels=5, mu=M_C * M_H / (M_C + M_H), n_grid=1200, Q=Q):
     ok = np.isfinite(E)
     q, E, D = Q[ok], E[ok], D[ok]
     V = (E - E.min()) * HARTREE_CM
