@@ -1,0 +1,12 @@
+  a-glucose: 80 embedded, 39 with 4C1 chairs
+  a-glucose: conformer E=-43.395967 Eh  stereo=[('', 1, 'ax'), ('', 2, 'eq'), ('', 3, 'eq'), ('', 4, 'eq'), ('', 5, 'eq')]
+  a-glucose: conformer E=-43.396269 Eh  stereo=[('', 1, 'ax'), ('', 2, 'eq'), ('', 3, 'eq'), ('', 4, 'eq'), ('', 5, 'eq')]
+  a-glucose: conformer E=-43.396177 Eh  stereo=[('', 1, 'ax'), ('', 2, 'eq'), ('', 3, 'eq'), ('', 4, 'eq'), ('', 5, 'eq')]
+  a-glucose: conformer E=-43.395630 Eh  stereo=[('', 1, 'ax'), ('', 2, 'eq'), ('', 3, 'eq'), ('', 4, 'eq'), ('', 5, 'eq')]
+  a-glucose: conformer E=-43.391972 Eh  stereo=[('', 1, 'ax'), ('', 2, 'eq'), ('', 3, 'eq'), ('', 4, 'eq'), ('', 5, 'eq')]
+  a-glucose: conformer E=-43.391751 Eh  stereo=[('', 1, 'ax'), ('', 2, 'eq'), ('', 3, 'eq'), ('', 4, 'eq'), ('', 5, 'eq')]
+  a-glucose: conformer E=-43.392665 Eh  stereo=[('', 1, 'ax'), ('', 2, 'eq'), ('', 3, 'eq'), ('', 4, 'eq'), ('', 5, 'eq')]
+  a-glucose: conformer E=-43.392402 Eh  stereo=[('', 1, 'ax'), ('', 2, 'eq'), ('', 3, 'eq'), ('', 4, 'eq'), ('', 5, 'eq')]
+a-glucose: 4 conformers, weights [0.32 0.29 0.23 0.16]
+  done in 81 s
+  b-glucose: 80 embedded, 50 with 4C1 chairs
