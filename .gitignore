@@ -3,5 +3,3 @@ __pycache__/
 results_localmode/*.log
 results_xh_run.log
 results_xh_dft_*.log
-# temporary: results still being written, removed when the run finishes
-results_xh/
